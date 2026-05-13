@@ -1,32 +1,49 @@
 const express = require('express');
+const { Sequelize, DataTypes } = require('sequelize');
+
 const app = express();
 const port = 3000;
 
 app.use(express.json());
 
-// Base de données fictive pour commencer (on connectera Postgres plus tard)
-let livres = [
-    { id: 1, titre: "Le Petit Prince", auteur: "Antoine de Saint-Exupéry" },
-    { id: 2, titre: "1984", auteur: "George Orwell" }
-];
+// Connexion à PostgreSQL via les variables d'environnement de Docker
+const sequelize = new Sequelize(
+  process.env.DB_NAME, 
+  process.env.DB_USER, 
+  process.env.DB_PASS, 
+  {
+    host: process.env.DB_HOST,
+    dialect: 'postgres',
+    logging: false
+  }
+);
 
-// Route de test
-app.get('/', (req, res) => {
-    res.send('API de Gestion de Bibliothèque opérationnelle !');
+// Définition du modèle Livre (Database Schema)
+const Livre = sequelize.define('Livre', {
+  titre: { type: DataTypes.STRING, allowNull: false },
+  auteur: { type: DataTypes.STRING, allowNull: false }
 });
 
-// GET : Liste de tous les livres
-app.get('/api/livres', (req, res) => {
-    res.json(livres);
+// Synchronisation avec la base de données
+sequelize.sync({ alter: true })
+  .then(() => console.log('Base de données PostgreSQL synchronisée.'))
+  .catch(err => console.error('Erreur de synchronisation DB:', err));
+
+// Routes API REST actualisées
+app.get('/api/livres', async (req, res) => {
+  const livres = await Livre.findAll();
+  res.json(livres);
 });
 
-// POST : Ajouter un livre
-app.post('/api/livres', (req, res) => {
-    const nouveauLivre = { id: livres.length + 1, ...req.body };
-    livres.push(nouveauLivre);
+app.post('/api/livres', async (req, res) => {
+  try {
+    const nouveauLivre = await Livre.create(req.body);
     res.status(201).json(nouveauLivre);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
 app.listen(port, () => {
-    console.log(`Serveur lancé sur http://localhost:${port}`);
+  console.log(`Serveur actif sur le port ${port}`);
 });

@@ -23,7 +23,7 @@ jobs:
       run: npm install
       
     - name: Run unit tests
-      run: cross-env NODE_ENV=test jest --runInBand --detectOpenHandles
+      run: NODE_ENV=test npx jest --runInBand --detectOpenHandles
 
     # CONNEXION AUTOMATIQUE À DOCKER HUB
     - name: Log in to Docker Hub
